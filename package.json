@@ -1,0 +1,20 @@
+{
+  "name": "user-management-app",
+  "version": "1.0.0",
+  "description": "Fullstack user management application with MongoDB and Next.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:db\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:db": "docker-compose up -d mongodb",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "start": "docker-compose up -d && cd backend && npm start",
+    "stop": "docker-compose down",
+    "clean": "docker-compose down -v && docker volume rm user-management-app_mongodb_data"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  },
+  "keywords": ["mongodb", "nextjs", "express", "fullstack"],
+  "author": "Your Name",
+  "license": "MIT"
+} 

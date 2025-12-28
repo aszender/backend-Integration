@@ -1,0 +1,27 @@
+{
+  "name": "my-fullstack-app-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for the fullstack application using Next.js",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "next": "^13.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.1.0",
+    "@types/react": "19.1.9",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^13.0.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "proxy": "http://localhost:5001"
+}
