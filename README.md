@@ -14,6 +14,9 @@ of concerns, with the frontend intentionally kept minimal.
 ### Backend (Primary Focus)
 - Node.js
 - Express
+- JWT authentication (optional enforcement)
+- Input validation (Zod)
+- Centralized error handling
 - RESTful API design
 - Layered structure (routes, controllers, models)
 - Environment-based configuration
@@ -117,6 +120,13 @@ cd backend
 npm run dev
 ```
 
+#### Backend (production build)
+```bash
+cd backend
+npm run build
+npm start
+```
+
 #### Frontend
 ```bash
 cd frontend
@@ -135,6 +145,54 @@ docker-compose up -d mongodb
 - Frontend: http://localhost:3000
 - Backend API (direct): http://localhost:5001/api
 - Backend API (via frontend rewrite): http://localhost:3000/api
+
+---
+
+## JWT Authentication
+
+The backend includes JWT auth endpoints under `/api/auth`.
+
+### Configure
+
+Create a `.env` in `backend/` (or export env vars) based on:
+
+- [backend/.env.example](backend/.env.example)
+
+Key variables:
+
+- `JWT_SECRET` (required for real use)
+- `JWT_EXPIRES_IN` (default `1h`)
+- `ENFORCE_AUTH` (default `false`)
+
+### Endpoints
+
+- `POST /api/auth/register` `{ name, email, password }` → `{ token, user }`
+- `POST /api/auth/login` `{ email, password }` → `{ token, user }`
+- `GET /api/auth/me` (requires `Authorization: Bearer <token>`)
+
+### Protecting `/api/users`
+
+To keep the demo UI working out-of-the-box, `/api/users` is only protected when:
+
+- `ENFORCE_AUTH=true`
+
+When enabled, calls to `/api/users` must include:
+
+- `Authorization: Bearer <token>`
+
+### Frontend behavior
+
+The home page includes a minimal Auth panel:
+
+- You can Register/Login to obtain a token.
+- The token is stored in `localStorage` as `authToken`.
+- When a token exists, the frontend automatically attaches `Authorization: Bearer <token>` to `/api/users` requests.
+
+---
+
+## Notes
+
+- MongoDB is provided via Docker Compose. If Mongo isn’t reachable, the backend falls back to an in-memory store (useful for demos).
 
 ---
 

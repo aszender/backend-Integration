@@ -7,6 +7,7 @@ interface User {
 }
 
 const API_URL = '/api/users';
+const AUTH_URL = '/api/auth';
 
 const HomePage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -14,8 +15,33 @@ const HomePage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  const [authName, setAuthName] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [token, setToken] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' ? window.localStorage.getItem('authToken') : null;
+    if (saved) setToken(saved);
+  }, []);
+
+  const authHeaders = (extra?: Record<string, string>) => {
+    const headers: Record<string, string> = { ...(extra || {}) };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    return headers;
+  };
+
   const fetchUsers = async () => {
-    const res = await fetch(API_URL);
+    setApiError(null);
+    const res = await fetch(API_URL, { headers: authHeaders() });
+    if (!res.ok) {
+      const text = await res.text();
+      setUsers([]);
+      setApiError(text || `Request failed (${res.status})`);
+      return;
+    }
     const data = await res.json();
     setUsers(data);
   };
@@ -24,18 +50,69 @@ const HomePage: React.FC = () => {
     fetchUsers();
   }, []);
 
+  useEffect(() => {
+    // Re-fetch when auth state changes (helps when ENFORCE_AUTH=true)
+    fetchUsers();
+  }, [token]);
+
+  const saveToken = (newToken: string) => {
+    setToken(newToken);
+    window.localStorage.setItem('authToken', newToken);
+  };
+
+  const clearToken = () => {
+    setToken(null);
+    window.localStorage.removeItem('authToken');
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    const res = await fetch(`${AUTH_URL}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: authName, email: authEmail, password: authPassword }),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      setAuthError(text || `Register failed (${res.status})`);
+      return;
+    }
+    const data = await res.json();
+    if (data?.token) saveToken(data.token);
+    setAuthPassword('');
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    const res = await fetch(`${AUTH_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: authEmail, password: authPassword }),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      setAuthError(text || `Login failed (${res.status})`);
+      return;
+    }
+    const data = await res.json();
+    if (data?.token) saveToken(data.token);
+    setAuthPassword('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingId) {
       await fetch(`${API_URL}/${editingId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ name, email }),
       });
     } else {
       await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ name, email }),
       });
     }
@@ -53,13 +130,70 @@ const HomePage: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
-    await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+    await fetch(`${API_URL}/${id}`, { method: 'DELETE', headers: authHeaders() });
     fetchUsers();
   };
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: 20, fontFamily: 'Arial, sans-serif' }}>
       <h1 style={{ color: '#2a7ae2' }}>User Management</h1>
+
+      <div style={{ marginBottom: 20, padding: 12, border: '1px solid #ddd', borderRadius: 6 }}>
+        <h2 style={{ marginTop: 0 }}>Auth</h2>
+        {token ? (
+          <div>
+            <div style={{ marginBottom: 8 }}>
+              <strong>Status:</strong> Authenticated
+            </div>
+            <button onClick={clearToken}>
+              Logout
+            </button>
+          </div>
+        ) : (
+          <form style={{ display: 'grid', gap: 8 }}>
+            <div>
+              <label>Name (register only):</label>
+              <input
+                type="text"
+                value={authName}
+                onChange={e => setAuthName(e.target.value)}
+                style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }}
+              />
+            </div>
+            <div>
+              <label>Email:</label>
+              <input
+                type="email"
+                value={authEmail}
+                onChange={e => setAuthEmail(e.target.value)}
+                required
+                style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }}
+              />
+            </div>
+            <div>
+              <label>Password:</label>
+              <input
+                type="password"
+                value={authPassword}
+                onChange={e => setAuthPassword(e.target.value)}
+                required
+                minLength={8}
+                style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={handleRegister} type="button">
+                Register
+              </button>
+              <button onClick={handleLogin} type="button">
+                Login
+              </button>
+            </div>
+            {authError ? <div style={{ color: 'crimson' }}>{authError}</div> : null}
+          </form>
+        )}
+      </div>
+
       <form onSubmit={handleSubmit} style={{ marginBottom: 20 }}>
         <input type="hidden" value={editingId || ''} />
         <label>Name:</label>
@@ -82,6 +216,13 @@ const HomePage: React.FC = () => {
           {editingId ? 'Update User' : 'Save User'}
         </button>
       </form>
+
+      {apiError ? (
+        <div style={{ marginBottom: 12, color: 'crimson' }}>
+          {apiError}
+        </div>
+      ) : null}
+
       <h2>Users</h2>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>

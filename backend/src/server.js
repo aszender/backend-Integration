@@ -1,20 +1,4 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const userRoutes = require('./routes/userRoutes');
-const connectDB = require('../config/db');
-
-const app = express();
-const PORT = process.env.PORT || 5001;
-
-app.use(cors());
-app.use(bodyParser.json());
-
-connectDB();
-
-app.use('/api/users', userRoutes);
-
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-}); 
+// Backward compatibility entrypoint.
+// The backend is now implemented in TypeScript at src/server.ts.
+// Build first via `npm run build` (or run `npm run dev`).
+require('../dist/server');
